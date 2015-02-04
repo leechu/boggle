@@ -4,8 +4,6 @@
 // a dictionary, finds all the words that can be spelled with the
 // game board.
 //
-// The dictionary file was pulled from http://dml.cs.byu.edu/~sburton/cs235/projects/boggle/dictionary.txt
-//
 
 #include <ctype.h>
 #include <stdio.h>
@@ -116,9 +114,9 @@ inline int chop(char *buf)
   return stringLength;
 }
 
-// Used to allocate memory for a trie node and is used by buildTrie().
+// Used to allocate memory for a trie node and is used by trieBuild().
 //
-Trie *allocTrieNode(void)
+Trie *trieAllocNode(void)
 {
   Trie *newNode = (Trie *)malloc(sizeof(*newNode));
 
@@ -135,7 +133,7 @@ Trie *allocTrieNode(void)
 // not be added, such as words that contain letters that
 // do not even exist in the game board.
 //
-bool addToTrie( BoggleCB *bCB,
+bool trieAddWord( BoggleCB *bCB,
                 char *word,
                 bool *wordAdded )
 {
@@ -168,7 +166,7 @@ bool addToTrie( BoggleCB *bCB,
     //
     if ( curNode->child[ix] == NULL )
     {
-      curNode->child[ix] = allocTrieNode();
+      curNode->child[ix] = trieAllocNode();
       if ( curNode->child[ix] == NULL )
       {
         bSuccess = false;
@@ -207,20 +205,20 @@ void initBoggle(BoggleCB *bCB)
 
   // Add a root node to the trie
   //
-  bCB->dict = allocTrieNode();
+  bCB->dict = trieAllocNode();
   bCB->trieAllocCalls++;
 }
 
 // Recursively free the trie that stores our dictionary
 //
-void freeTrie(BoggleCB *bCB,
+void trieFree(BoggleCB *bCB,
               Trie **node )
 {
   if ( *node != NULL )
   {
     for ( int i = 0; i < ALPHABET_SIZE ; i++ )
     {
-      freeTrie(bCB, &(*node)->child[i]);
+      trieFree(bCB, &(*node)->child[i]);
     }
 
     free (*node );
@@ -234,7 +232,7 @@ void freeTrie(BoggleCB *bCB,
 // takes place on-the-fly so that we skip words that couldn't possibly
 // be spelled with the given game board.
 //
-bool buildTrie(BoggleCB *bCB,
+bool trieBuild(BoggleCB *bCB,
                FILE *fp )
 {
   bool bSuccess = true;
@@ -258,9 +256,9 @@ bool buildTrie(BoggleCB *bCB,
     if ( stringLength <= maxStringLength )
     {
       // Add this guy to the trie.  Filtering occurs inside
-      // addToTrie().
+      // trieAddWord().
       //
-      if( !addToTrie(bCB, buf, &wordAdded) )
+      if( !trieAddWord(bCB, buf, &wordAdded) )
       {
         // Hit an error.. bail out
         //
@@ -431,6 +429,10 @@ int main(int argc, char *argv[])
   int stringLength = 0;
   BoggleCB bCB;
 
+  // Initialize to all zeroes
+  //
+  memset( &bCB, '\0', sizeof(bCB) );
+
   if ( argc > ARG_MAX )
   {
     printf("Invalid number of args (%d).  Specify the boardFile and the dictionaryFile.\n", argc );
@@ -444,7 +446,7 @@ int main(int argc, char *argv[])
   fp = fopen(argv[ARG_BOARDFILE], "r");
   if ( !fp )
   {
-    printf("Error opening file \"%s\"\n", argv[ARG_BOARDFILE]);
+    printf("Error opening board file \"%s\"\n", argv[ARG_BOARDFILE]);
     goto exit;
   }
 
@@ -565,13 +567,13 @@ int main(int argc, char *argv[])
   fp = fopen(argv[ARG_DICTFILE], "r");
   if ( !fp )
   {
-    printf("Error opening file \"%s\"\n", argv[ARG_DICTFILE]);
+    printf("Error opening dictionary file \"%s\"\n", argv[ARG_DICTFILE]);
     goto exit;
   }
 
   // Build our trie, which allows us to quickly search for valid words
   //
-  if ( !buildTrie(&bCB, fp) )
+  if ( !trieBuild(&bCB, fp) )
   {
     printf("Error building trie\n");
     goto exit;
@@ -584,7 +586,7 @@ int main(int argc, char *argv[])
 exit:
   // Release resources
   //
-  freeTrie(&bCB, &bCB.dict);
+  trieFree(&bCB, &bCB.dict);
   printf("num alloc calls = %lu, num free calls = %lu\n",
           bCB.trieAllocCalls,
           bCB.trieFreeCalls);
