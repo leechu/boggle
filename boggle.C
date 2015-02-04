@@ -182,9 +182,8 @@ bool trieAddWord( BoggleCB *bCB,
     curNode = curNode->child[ix];
   }
 
-  // With the last node that we touch, mark it as a terminal node 
-  // so that we know that this is a boundary where a legitimate word has
-  // been spelled.
+  // Mark the last node with a flag indicating that this node signifies a 
+  // dictionary word.
   //
   if ( prevNode && 
        i == stringLength )
@@ -328,8 +327,8 @@ inline bool isValid( BoggleCB *bCB,
   // Condition 1: Move is within the bounds of the board
   // Condition 2: Letter hasn't already been used to spell
   //              the current word.
-  // Condition 3: The word (up to this recursive call) exists
-  //              in our dictionary.
+  // Condition 3: The string being spelled up to this point
+  //              exists in our dictionary.
   //
   if ( boardIndex >=0 && boardIndex <= bCB->maxBoardSize &&
        !bCB->used[boardIndex] &&
@@ -353,7 +352,7 @@ void findSolution( BoggleCB *bCB,
   //
   assert(node != NULL );
 
-  // We have arrived at a word node and successfully spelled
+  // We have arrived at a word node and have successfully spelled
   // a word.
   //
   if ( node->flags & FLAGS_ISWORD )
