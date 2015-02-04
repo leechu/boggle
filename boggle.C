@@ -360,7 +360,7 @@ void findSolution( BoggleCB *bCB,
     printf("Found word %s (%d,%d)\n", bCB->search, row, col);
   }
 
-  // Keep going, in case the word is a suffix.
+  // Keep going, in case the word is a prefix for another word.
   //
   for ( int rowDiff = -1; rowDiff < 2; rowDiff++ )
   {
