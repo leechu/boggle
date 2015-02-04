@@ -85,7 +85,9 @@ struct BoggleCB
 // Given a row and column number, convert it into a flat array
 // index
 //
-inline int getBoardIndex(BoggleCB *bCB, int row, int col)
+inline int getBoardIndex( BoggleCB *bCB, 
+                          int row, 
+                          int col)
 {
   return ( (bCB->boardSize*row) + col);
 }
@@ -101,7 +103,7 @@ inline int getCharIndex( char c )
 
 // Remove trailing characters such as newline.
 //
-inline int chop(char *buf)
+inline int chop( char *buf )
 {
   int stringLength = strlen(buf);
 
@@ -116,7 +118,7 @@ inline int chop(char *buf)
 
 // Used to allocate memory for a trie node and is used by trieBuild().
 //
-Trie *trieAllocNode(void)
+Trie *trieAllocNode( void )
 {
   Trie *newNode = (Trie *)malloc(sizeof(*newNode));
 
@@ -134,8 +136,8 @@ Trie *trieAllocNode(void)
 // do not even exist in the game board.
 //
 bool trieAddWord( BoggleCB *bCB,
-                char *word,
-                bool *wordAdded )
+                  char *word,
+                  bool *wordAdded )
 {
   int i = 0;
   int stringLength = strlen(word);
@@ -198,7 +200,7 @@ exit:
 
 // Initialize our Boggle control block
 //
-void initBoggle(BoggleCB *bCB)
+void initBoggle( BoggleCB *bCB )
 {
   bCB->trieAllocCalls = 
     bCB->trieFreeCalls = 0;
@@ -211,8 +213,8 @@ void initBoggle(BoggleCB *bCB)
 
 // Recursively free the trie that stores our dictionary
 //
-void trieFree(BoggleCB *bCB,
-              Trie **node )
+void trieFree( BoggleCB *bCB,
+               Trie **node )
 {
   if ( *node != NULL )
   {
@@ -232,8 +234,8 @@ void trieFree(BoggleCB *bCB,
 // takes place on-the-fly so that we skip words that couldn't possibly
 // be spelled with the given game board.
 //
-bool trieBuild(BoggleCB *bCB,
-               FILE *fp )
+bool trieBuild( BoggleCB *bCB,
+                FILE *fp )
 {
   bool bSuccess = true;
   int *histogram = bCB->histogram;
@@ -284,7 +286,10 @@ exit:
 // word we are currently spelling.  The two functions markUnused() and
 // markUsed() help us to do this.
 //
-inline void markUnused(BoggleCB *bCB, int row, int col, int stringIndex)
+inline void markUnused( BoggleCB *bCB, 
+                        int row, 
+                        int col, 
+                        int stringIndex )
 {
   int boardIndex = getBoardIndex(bCB, row, col);
   assert(bCB->used[boardIndex] == true);
@@ -294,7 +299,10 @@ inline void markUnused(BoggleCB *bCB, int row, int col, int stringIndex)
   bCB->search[stringIndex] = '\0';
 }
 
-inline void markUsed(BoggleCB *bCB, int row, int col, int stringIndex)
+inline void markUsed( BoggleCB *bCB, 
+                      int row, 
+                      int col, 
+                      int stringIndex )
 {
   int boardIndex = getBoardIndex(bCB, row, col);
   assert(bCB->used[boardIndex] == false);
@@ -309,7 +317,9 @@ inline void markUsed(BoggleCB *bCB, int row, int col, int stringIndex)
 // row or column position) or if the move couldn't result in a
 // correct word being spelled.
 //
-inline bool isValid(BoggleCB *bCB, int boardIndex, Trie *node)
+inline bool isValid( BoggleCB *bCB, 
+                     int boardIndex, 
+                     Trie *node )
 {
   // The move is valid if the square isn't in use and it is adjacent
   //
@@ -333,7 +343,11 @@ inline bool isValid(BoggleCB *bCB, int boardIndex, Trie *node)
 
 // Given a row and column number, recursively try all the adjacent tiles.
 //
-void findSolution(BoggleCB *bCB, int row, int col, Trie *node, int stringIndex)
+void findSolution( BoggleCB *bCB, 
+                   int row, 
+                   int col, 
+                   Trie *node, 
+                   int stringIndex )
 {
   // We should always be going down a valid path in the trie.
   //
@@ -389,7 +403,7 @@ void findSolution(BoggleCB *bCB, int row, int col, Trie *node, int stringIndex)
 // tile.  findSolution() is a recursive function that will visit the
 // adjacent tiles.
 //
-void playBoggle(BoggleCB *bCB)
+void playBoggle( BoggleCB *bCB )
 {
   int charIndex = 0;
 
@@ -415,7 +429,7 @@ void playBoggle(BoggleCB *bCB)
   }
 }
 
-int main(int argc, char *argv[])
+int main( int argc, char *argv[] )
 {
   int rc = 0;
   FILE *fp = NULL;
