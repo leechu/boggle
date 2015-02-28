@@ -29,7 +29,7 @@
 
 // Max word length
 //
-#define MAX_WORD_LENGTH 80
+#define MAX_WORD_LENGTH 230
 
 // This is used to store our dictionary and provide quick lookup for words.
 //
@@ -78,7 +78,8 @@ struct BoggleCB
   size_t trieAllocCalls;
   size_t trieFreeCalls;
 
-  int boardSize;
+  int boardRows;
+  int boardCols;
   int maxBoardSize;
 };
 
@@ -89,7 +90,7 @@ inline int getBoardIndex( BoggleCB *bCB,
                           int row, 
                           int col)
 {
-  return ( (bCB->boardSize*row) + col);
+  return ( (bCB->boardCols*row) + col);
 }
 
 // We only care about the letters a-z .  This converts a letter's ASCII value
@@ -98,6 +99,7 @@ inline int getBoardIndex( BoggleCB *bCB,
 inline int getCharIndex( char c )
 {
   char base = 'a';
+  assert( c >= base && c <= 'z');
   return ( tolower(c) - base );
 }
 
@@ -240,7 +242,7 @@ bool trieBuild( BoggleCB *bCB,
   int *histogram = bCB->histogram;
   int stringLength = 0;
   size_t wordCount = 0;
-  int maxStringLength = bCB->boardSize*bCB->boardSize;
+  int maxStringLength = bCB->boardRows*bCB->boardCols;
   char buf[FILE_LINE_SIZE];
   bool wordAdded = false;
 
@@ -366,7 +368,7 @@ void findSolution( BoggleCB *bCB,
   {
     int newRow = row+rowDiff;
 
-    if ( newRow >= 0 && newRow < bCB->boardSize )
+    if ( newRow >= 0 && newRow < bCB->boardRows)
     {
       for ( int colDiff = -1; 
                 colDiff < 2; 
@@ -376,7 +378,7 @@ void findSolution( BoggleCB *bCB,
         int move = getBoardIndex(bCB, newRow, newCol);
 
         if ( newCol >= 0 &&
-             newCol < bCB->boardSize &&
+             newCol < bCB->boardCols &&
              isValid(bCB, move, node) )
         {
           int newIx = getCharIndex( bCB->board[move] );
@@ -406,15 +408,15 @@ void playBoggle( BoggleCB *bCB )
 {
   int charIndex = 0;
 
-  assert(sizeof(bCB->search) >= (bCB->boardSize*bCB->boardSize) );
+  assert(sizeof(bCB->search) >= (bCB->boardRows*bCB->boardCols) );
 
   // Reset the word we're trying to spell.
   //
   memset(bCB->search, '\0', sizeof(bCB->search) );
 
-  for (int i = 0; i < bCB->boardSize; i++ )
+  for (int i = 0; i < bCB->boardRows; i++ )
   {
-    for ( int j = 0; j < bCB->boardSize; j++ )
+    for ( int j = 0; j < bCB->boardCols; j++ )
     {
       markUsed(bCB, i, j, 0);
       charIndex = getCharIndex( bCB->board[getBoardIndex(bCB,i,j)] ) ;
@@ -433,7 +435,7 @@ int main( int argc, char *argv[] )
   int rc = 0;
   FILE *fp = NULL;
   char buf[FILE_LINE_SIZE];
-  size_t boardSize = 0;
+  size_t boardRows = 0, boardCols = 0;
   char *board = NULL;
   size_t allocBytes = 0;
   int row = 0, col = 0;
@@ -465,10 +467,9 @@ int main( int argc, char *argv[] )
 
   // fgets reads in a line at a time.
   //
+  row = 0;
   while ( fgets(buf, sizeof(buf), fp) != NULL )
   {
-    col = 0;
-
     // ABCD\n
     // string length is 5
     //
@@ -478,11 +479,12 @@ int main( int argc, char *argv[] )
     //
     if ( board == NULL )
     {
-      boardSize = stringLength;
-      bCB.boardSize = boardSize;
+      // For now, assume a square game board.
+      //
+      bCB.boardRows = bCB.boardCols = stringLength;
 
-      printf("Allocating enough memory for a %lu x %lu board\n", boardSize, boardSize);
-      allocBytes = sizeof(char) * boardSize * boardSize;
+      printf("Allocating enough memory for a %d x %d board\n", bCB.boardCols, bCB.boardCols);
+      allocBytes = sizeof(char) * bCB.boardRows * bCB.boardCols;
       board = (char *)malloc( allocBytes );
       if ( !board )
       {
@@ -491,6 +493,27 @@ int main( int argc, char *argv[] )
       }
       memset(board, '\0', allocBytes );
     }
+    else if ( row == bCB.boardRows )
+    {
+      // We don't have a square game board.. realloc and double the
+      // number of rows in the game board
+      //
+      bCB.boardRows *= 2;
+      allocBytes = sizeof(char) * bCB.boardRows * bCB.boardCols;
+
+      char *tmpBoard = (char *)realloc(board, allocBytes);
+      if ( !tmpBoard )
+      {
+        printf("Error growing board memory (%lu bytes)\n", allocBytes );
+        goto exit;
+      }
+
+      // Reassign the board.
+      //
+      board = tmpBoard;
+
+      printf("Grew game board to %d x %d\n", bCB.boardRows, bCB.boardCols );
+    }
 
     // Board layout positions
     //  0  1  2  3
@@ -498,13 +521,17 @@ int main( int argc, char *argv[] )
     //  8  9 10 11
     // 12 13 14 15
     //
-    for ( i = 0; i < boardSize; i++ )
+    for ( i = 0; i < bCB.boardCols; i++ )
     {
-      board[ boardSize*row + i ] = tolower(buf[i]);
+      board[ bCB.boardCols * row + i ] = tolower(buf[i]);
     }
 
     row++;
   }
+
+  // Adjust boardRows to the actual number of rows read in.
+  //
+  bCB.boardRows = row;
 
   // Done with the file
   //
@@ -513,18 +540,18 @@ int main( int argc, char *argv[] )
 
   // Print out the board
   //
-  for ( row = 0; row  <  boardSize; row++ )
+  for ( row = 0; row < bCB.boardRows; row++ )
   {
-    for ( col = 0; col < boardSize; col++ )
+    for ( col = 0; col < bCB.boardCols; col++ )
     {
-      printf("%2c", board[row*boardSize + col] );
+      printf("%2c", board[row*bCB.boardCols+ col] );
     }
     printf("\n");
   }
 
   // Now we need to build a trie that represents the dictionary words.
   // There are a few things we can do to prune the dictionary.
-  // 1) Discard words of length longer than boardSize*boardSize
+  // 1) Discard words of length longer than the board size.
   // 2) We can keep a histogram of character counts, based on
   //    the game board.  We use the game board because it is likely
   //    going to be smaller than the dictionary itself.  If a dictionary
@@ -550,9 +577,9 @@ int main( int argc, char *argv[] )
   }
   memset(histogram, '\0', allocBytes);
 
-  for ( row = 0; row < boardSize; row++ )
+  for ( row = 0; row < bCB.boardRows; row++ )
   {
-    for (col = 0; col < boardSize; col++ )
+    for (col = 0; col < bCB.boardCols; col++ )
     {
       int arrayIndex = getCharIndex( board[getBoardIndex(&bCB, row, col)] );
       assert(arrayIndex < ALPHABET_SIZE);
@@ -564,9 +591,9 @@ int main( int argc, char *argv[] )
   //
   bCB.histogram = histogram;
   bCB.board     = board;
-  bCB.maxBoardSize = bCB.boardSize*bCB.boardSize;
+  bCB.maxBoardSize = bCB.boardRows*bCB.boardCols;
 
-  allocBytes = sizeof(*bCB.used) * boardSize*boardSize;
+  allocBytes = sizeof(*bCB.used) * bCB.maxBoardSize;
   bCB.used = (bool *)malloc(allocBytes);
   if ( !bCB.used )
   {
