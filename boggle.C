@@ -245,6 +245,7 @@ bool trieBuild( BoggleCB *bCB,
   int maxStringLength = bCB->boardRows*bCB->boardCols;
   char buf[FILE_LINE_SIZE];
   bool wordAdded = false;
+  int i = 0, j = 0;
 
   // fgets reads in a line at a time.  Build the trie as
   // we read in the file
@@ -253,6 +254,19 @@ bool trieBuild( BoggleCB *bCB,
   {
     wordAdded = false;
     stringLength = chop(buf);
+
+    // Convert the word to lower case, and ignore anything that's
+    // not alphabetic.
+    //
+    for (i = 0, j = 0; i < stringLength; i++ )
+    {
+      if ( !isalpha(buf[i]) )
+      {
+        continue;
+      }
+      buf[j] = tolower(buf[i]);
+      j++;
+    }
 
     // Skip words that exceed the size of the game board.
     //
